@@ -11,7 +11,6 @@ Sequel::Migration.descendants.each { |m| m.apply(DB, :up) }
 
 
 RSpec.configure do |config|
-  config.include FactoryGirl::Syntax::Methods
   config.around :each do |example|
     load 'support/models.rb'
 
@@ -25,6 +24,3 @@ RSpec.configure do |config|
     end
   end
 end
-
-FactoryGirl.definition_file_paths = %w(spec/support)
-FactoryGirl.reload

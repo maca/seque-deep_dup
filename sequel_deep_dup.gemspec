@@ -1,10 +1,10 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'sequel/plugins/deep_dup/version'
+require 'sequel_deep_dup/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "sequel-deep_dup"
+  spec.name          = "sequel_deep_dup"
   spec.version       = Sequel::Plugins::DeepDup::VERSION
   spec.authors       = ["macario"]
   spec.email         = ["mail@makarius.me"]

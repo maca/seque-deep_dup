@@ -6,4 +6,3 @@ gemspec
 gem 'rspec'
 gem 'sqlite3'
 gem 'sequel'
-gem 'factory_girl'
