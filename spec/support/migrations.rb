@@ -7,7 +7,7 @@ Sequel.migration do
 
     create_table :courses do
       primary_key :id
-      foreign_key :program_id, :programs
+      foreign_key :program_id, :programs, :on_delete => :restrict, :on_update => :restrict
       String :name, null: false
       Date :starts
       Date :ends
@@ -15,13 +15,19 @@ Sequel.migration do
 
     create_table :assignments do
       primary_key :id
-      foreign_key :course_id, :courses
+      foreign_key :course_id, :courses, :on_delete => :restrict, :on_update => :restrict
       String :name, null: false
     end
 
     create_table :students do
       primary_key :id
       String :name, null: false
+    end
+
+    create_table :accounts do
+      primary_key :id
+      foreign_key :student_id, :students, :on_delete => :restrict, :on_update => :restrict
+      String :email, null: false
     end
 
     create_table :enrollments do
@@ -35,8 +41,8 @@ Sequel.migration do
     end
 
     create_table :course_categories do
-      foreign_key :course_id, :courses
-      foreign_key :category_id, :categories
+      foreign_key :course_id, :courses, :on_delete => :restrict, :on_update => :restrict
+      foreign_key :category_id, :categories, :on_delete => :restrict, :on_update => :restrict
     end
   end
 end

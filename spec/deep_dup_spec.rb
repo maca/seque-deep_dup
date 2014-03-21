@@ -4,8 +4,10 @@ describe Sequel::Plugins::DeepDup do
   let(:program)         { Program.create name: 'CS' }
   let(:program_copy)    { program.deep_dup }
   let(:course)          { Course.create name: 'Ruby' }
+
   let(:course_copy)     { course.deep_dup }
   let(:student)         { Student.create name: 'Macario' }
+  let(:student_copy)    { student.deep_dup }
   let(:enrollment)      { Enrollment.create }
   let(:enrollment_copy) { enrollment.deep_dup }
 
@@ -60,15 +62,27 @@ describe Sequel::Plugins::DeepDup do
     it { expect { program_copy.save }.to change{ Assignment.count }.by(9) }
   end
 
-  describe 'duplicating record with circular association graph' do
+  describe 'duplicating record with one to one' do
     before do
-      Program.plugin :deep_dup
-      Course.many_to_one  :program
-      3.times { |num| program.add_course name: "Course #{num}" }
+      Student.plugin :deep_dup
+      student.account = Account.create(email: 'mail@makarius.me')
     end
 
-    it 'should not raise stack level too deep' do
-      expect { program_copy }.not_to raise_error
+    it { student_copy.account.pk.should be_nil }
+    it { student_copy.account.email.should == 'mail@makarius.me' }
+    it { expect { student_copy.save }.to change { Account.count }.by(1) }
+  end
+
+  describe 'duplicating record with many to one association' do
+    before do
+      Account.plugin :deep_dup
+      student.account = Account.create(email: 'mail@makarius.me')
     end
+
+    let(:account_copy) { student.account.deep_dup }
+
+    it { account_copy.student.pk.should be_nil }
+    it { account_copy.student.name.should == 'Macario' }
+    it { expect { account_copy.save }.to change { Student.count }.by(1) }
   end
 end

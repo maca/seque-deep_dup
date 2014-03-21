@@ -1,6 +1,6 @@
 source 'https://rubygems.org'
 
-# Specify your gem's dependencies in sequel-deep_dup.gemspec
+# Specify your gem's dependencies in sequel_deep_dup.gemspec
 gemspec
 
 gem 'rspec'

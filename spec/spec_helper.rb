@@ -19,7 +19,7 @@ RSpec.configure do |config|
       raise Sequel::Rollback
     end
 
-    %w(Program Course Assignment Student Enrollment Category).each do |const|
+    %w(Program Course Assignment Student Account Enrollment Category).each do |const|
       Object.send :remove_const, const
     end
   end

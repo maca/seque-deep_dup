@@ -48,6 +48,13 @@ module Sequel
           if reflection.returns_array?
             copy.send(reflection[:name]) << record
             copy.after_save_hook{ copy.send(reflection.add_method, record) }
+          else
+            copy.associations[reflection[:name]] = record
+            # @set_associated_object_if_same = true
+
+            copy.after_save_hook {
+              copy.send reflection.setter_method, record.save(:validate=>false)
+            }
           end
         end
       end

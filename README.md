@@ -14,7 +14,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install sequel-deep_dup
+    $ gem install sequel_deep_dup
 
 ## Usage
 

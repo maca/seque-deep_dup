@@ -14,6 +14,11 @@ end
 
 class Student < Sequel::Model
   one_to_many :enrollments
+  one_to_one  :account
+end
+
+class Account < Sequel::Model
+  many_to_one :student
 end
 
 class Enrollment < Sequel::Model

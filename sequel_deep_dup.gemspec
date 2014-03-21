@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = Sequel::Plugins::DeepDup::VERSION
   spec.authors       = ["macario"]
   spec.email         = ["mail@makarius.me"]
-  spec.summary       = %q{TODO: Write a short summary. Required.}
-  spec.description   = %q{TODO: Write a longer description. Optional.}
+  spec.summary       = %q{Makes deep copies of existing sequel models into a new record, along with its association tree}
+  spec.description   = %q{Makes deep copies of existing sequel models into a new record, along with its association tree}
   spec.homepage      = ""
   spec.license       = "MIT"
 
