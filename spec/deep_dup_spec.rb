@@ -3,8 +3,7 @@ require 'spec_helper'
 describe Sequel::Plugins::DeepDup do
   let(:program)         { Program.create name: 'CS' }
   let(:program_copy)    { program.deep_dup }
-  let(:course)          { Course.create name: 'Ruby' }
-
+  let(:course)          { Course.create name: 'Ruby', program: program }
   let(:course_copy)     { course.deep_dup }
   let(:student)         { Student.create name: 'Macario' }
   let(:student_copy)    { student.deep_dup }
@@ -46,7 +45,7 @@ describe Sequel::Plugins::DeepDup do
     it { expect { course_copy.save }.not_to change{ Category.count } }
   end
 
-  describe 'duplicating record with nested many to many' do
+  describe 'duplicating record with nested many to one' do
     before do
       Program.plugin :deep_dup
       3.times { |num| program.add_course name: "Course #{num}" }
@@ -62,10 +61,25 @@ describe Sequel::Plugins::DeepDup do
     it { expect { program_copy.save }.to change{ Assignment.count }.by(9) }
   end
 
+  describe 'duplicating record with a many to many association after a many to one' do
+    before do
+      Program.plugin :deep_dup
+      3.times { |num| program.add_course name: "Course #{num}" }
+      program.courses.each do |course|
+        3.times { |num| course.add_category name: "Category #{num}" }
+      end
+    end
+    
+    it { program_copy.should have(3).courses }
+    it { program_copy.courses.first.should have(3).categories }
+    it { program_copy.courses.last.should have(3).categories }
+    it { expect { program_copy.save }.not_to change{ Category.count } }
+  end
+
   describe 'duplicating record with one to one' do
     before do
       Student.plugin :deep_dup
-      student.account = Account.create(email: 'mail@makarius.me')
+      student.account = Account.new(email: 'mail@makarius.me')
     end
 
     it { student_copy.account.pk.should be_nil }
@@ -76,7 +90,7 @@ describe Sequel::Plugins::DeepDup do
   describe 'duplicating record with many to one association' do
     before do
       Account.plugin :deep_dup
-      student.account = Account.create(email: 'mail@makarius.me')
+      student.account = Account.new(email: 'mail@makarius.me')
     end
 
     let(:account_copy) { student.account.deep_dup }

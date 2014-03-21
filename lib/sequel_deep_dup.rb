@@ -5,17 +5,17 @@ module Sequel
   module Plugins
     module DeepDup
       class DeepDupper
-        attr_reader :instance
+        attr_reader :instance, :omit_records
 
-        def initialize instance
-          @instance = instance
-          @cloned   = []
+        def initialize instance, omit = []
+          @instance     = instance
+          @omit_records = omit
         end
 
         def shallow_dup instance
           klass      = instance.class
           attributes = instance.to_hash.dup
-          [*klass.primary_key].each { |attr| attributes.delete(attr) } 
+          [*klass.primary_key].each { |attr| attributes.delete(attr) }
           klass.new attributes
         end
 
@@ -33,16 +33,16 @@ module Sequel
         private
         def deep_dup instance
           copy = shallow_dup(instance).extend(InstanceHooks::InstanceMethods)
-          @cloned << instance
+          omit_records << instance
           dup_associations(instance, copy, instance.class.associations)
           copy
         end
 
         def instantiate_associated copy, reflection, record
-          return if @cloned.detect { |cloned| record.pk == cloned.pk && record.class == cloned.class }
+          return if omit_records.detect { |to_omit| record.pk == to_omit.pk && record.class == to_omit.class }
 
           unless reflection[:type] == :many_to_many
-            record = deep_dup(record)
+            record = DeepDupper.new(record, omit_records).dup
           end
 
           if reflection.returns_array?
