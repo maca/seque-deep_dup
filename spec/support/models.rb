@@ -15,13 +15,20 @@ end
 class Student < Sequel::Model
   one_to_many :enrollments
   one_to_one  :account
+  one_to_one  :profile
 end
 
 class Account < Sequel::Model
   many_to_one :student
 end
 
+class Profile < Sequel::Model
+  set_primary_key :student_id  
+  many_to_one :student
+end
+
 class Enrollment < Sequel::Model
+  unrestrict_primary_key
   set_primary_key [:student_id, :course_id]
   many_to_one :student
   many_to_one :course

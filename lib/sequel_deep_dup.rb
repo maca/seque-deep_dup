@@ -12,13 +12,6 @@ module Sequel
           @omit_records = omit
         end
 
-        def shallow_dup instance
-          klass      = instance.class
-          attributes = instance.to_hash.dup
-          [*klass.primary_key].each { |attr| attributes.delete(attr) }
-          klass.new attributes
-        end
-
         def dup_associations instance, copy, associations
           associations.each do |name|
             next unless refl = instance.class.association_reflection(name)
@@ -27,17 +20,20 @@ module Sequel
         end
 
         def dup
-          deep_dup(instance)
-        end
-
-        private
-        def deep_dup instance
-          copy = shallow_dup(instance).extend(InstanceHooks::InstanceMethods)
+          copy = shallow_dup.extend(InstanceHooks::InstanceMethods)
           omit_records << instance
           dup_associations(instance, copy, instance.class.associations)
           copy
         end
 
+        def shallow_dup
+          klass      = instance.class
+          attributes = instance.to_hash.dup
+          [*klass.primary_key].each { |attr| attributes.delete(attr) }
+          klass.new attributes
+        end
+
+        private
         def instantiate_associated copy, reflection, record
           return if omit_records.detect { |to_omit| record.pk == to_omit.pk && record.class == to_omit.class }
 
@@ -50,11 +46,18 @@ module Sequel
             copy.after_save_hook{ copy.send(reflection.add_method, record) }
           else
             copy.associations[reflection[:name]] = record
-            # @set_associated_object_if_same = true
 
-            copy.after_save_hook {
-              copy.send reflection.setter_method, record.save(:validate=>false)
-            }
+            copy.instance_variable_set :@set_associated_object_if_same, true
+
+            if reflection[:type] == :many_to_one 
+              copy.before_save_hook {
+                copy.send reflection.setter_method, record.save(:validate=>false)
+              }
+            else
+              copy.after_save_hook{
+                copy.send(reflection.setter_method, record)
+              }
+            end
           end
         end
       end

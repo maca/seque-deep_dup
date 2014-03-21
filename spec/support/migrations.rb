@@ -30,9 +30,16 @@ Sequel.migration do
       String :email, null: false
     end
 
+    create_table :profiles do
+      foreign_key :student_id, :students, :on_delete => :restrict, :on_update => :restrict, :null => false
+      String :bio
+      primary_key :student_id
+    end
+
     create_table :enrollments do
-      foreign_key :student_id
-      foreign_key :course_id
+      foreign_key :student_id, :on_delete => :restrict, :on_update => :restrict, :null => false
+      foreign_key :course_id, :on_delete => :restrict, :on_update => :restrict, :null => false
+      primary_key [:student_id, :course_id]
     end
 
     create_table :categories do
