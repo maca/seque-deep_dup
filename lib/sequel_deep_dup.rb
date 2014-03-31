@@ -15,7 +15,7 @@ module Sequel
         def dup_associations instance, copy, associations
           associations.each do |name|
             next unless refl = instance.class.association_reflection(name)
-            [*instance.send(name)].each { |rec| instantiate_associated(copy, refl, rec) }
+            [*instance.send(name)].compact.each { |rec| instantiate_associated(copy, refl, rec) }
           end
         end
 
