@@ -15,7 +15,13 @@ module Sequel
         def dup_associations instance, copy, associations
           associations.each do |name|
             next unless refl = instance.class.association_reflection(name)
-            [*instance.send(name)].compact.each { |rec| instantiate_associated(copy, refl, rec) }
+            [*instance.send(name)].compact.each do |rec|
+              unless refl[:type] == :many_to_one
+                next instantiate_associated(copy, refl, rec)
+              end
+
+              copy.values.delete refl[:key]
+            end
           end
         end
 
@@ -46,10 +52,9 @@ module Sequel
             copy.after_save_hook{ copy.send(reflection.add_method, record) }
           else
             copy.associations[reflection[:name]] = record
-
             copy.instance_variable_set :@set_associated_object_if_same, true
 
-            if reflection[:type] == :many_to_one 
+            if reflection[:type] == :many_to_one
               copy.before_save_hook {
                 copy.send reflection.setter_method, record.save(:validate=>false)
               }

@@ -7,7 +7,7 @@ Sequel.migration do
 
     create_table :courses do
       primary_key :id
-      foreign_key :program_id, :programs, :on_delete => :restrict, :on_update => :restrict, :null => false
+      foreign_key :program_id, :programs, :on_delete => :restrict, :on_update => :restrict
       String :name, null: false
       Date :starts
       Date :ends

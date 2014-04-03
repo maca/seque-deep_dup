@@ -9,8 +9,15 @@ load 'support/migrations.rb'
 DB = Sequel.sqlite
 Sequel::Migration.descendants.each { |m| m.apply(DB, :up) }
 
+module Helpers
+  def enable_deep_dup_for *models
+    models.each { |model| model.plugin :deep_dup }
+  end
+end
 
 RSpec.configure do |config|
+  config.include Helpers
+
   config.around :each do |example|
     load 'support/models.rb'
 
