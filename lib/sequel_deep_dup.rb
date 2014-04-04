@@ -5,30 +5,18 @@ module Sequel
   module Plugins
     module DeepDup
       class DeepDupper
-        attr_reader :instance, :omit_records
+        attr_reader :instance, :omit_records, :associations
 
-        def initialize instance, omit = []
+        def initialize instance, opts = {}
           @instance     = instance
-          @omit_records = omit
-        end
-
-        def dup_associations instance, copy, associations
-          associations.each do |name|
-            next unless refl = instance.class.association_reflection(name)
-            [*instance.send(name)].compact.each do |rec|
-              unless refl[:type] == :many_to_one
-                next instantiate_associated(copy, refl, rec)
-              end
-
-              copy.values.delete refl[:key]
-            end
-          end
+          @associations = opts[:associations]
+          @omit_records = opts[:omit_records] || []
         end
 
         def dup
           copy = shallow_dup.extend(InstanceHooks::InstanceMethods)
           omit_records << instance
-          dup_associations(instance, copy, instance.class.associations)
+          dup_associations(instance, copy, associations)
           copy
         end
 
@@ -39,12 +27,38 @@ module Sequel
           klass.new attributes
         end
 
+        def dup_associations instance, copy, includes = nil
+          includes &&= includes.map { |item| [*item].flatten }
+          associations = instance.class.associations
+
+          ([*includes].map{ |i| i.first } - associations).each do |assoc|
+            raise(Error, "no association named #{assoc} for #{instance}")
+          end
+
+          associations.each do |name|
+            next unless refl = instance.class.association_reflection(name)
+            [*instance.send(name)].compact.each do |rec|
+              if includes
+                next unless graph = includes.assoc(refl[:name])
+                instantiate_associated(copy, refl, rec, graph[1..-1])
+              else
+                next copy.values.delete(refl[:key]) if refl[:type] == :many_to_one
+                instantiate_associated(copy, refl, rec, nil)
+              end
+            end
+          end
+        end
+
         private
-        def instantiate_associated copy, reflection, record
+        def instantiate_associated copy, reflection, record, associations
           return if omit_records.detect { |to_omit| record.pk == to_omit.pk && record.class == to_omit.class }
 
           unless reflection[:type] == :many_to_many
-            record = DeepDupper.new(record, omit_records).dup
+            record = DeepDupper.new(
+              record,
+              omit_records: omit_records,
+              associations: associations
+            ).dup
           end
 
           if reflection.returns_array?
@@ -56,7 +70,7 @@ module Sequel
 
             if reflection[:type] == :many_to_one
               copy.before_save_hook {
-                copy.send reflection.setter_method, record.save(:validate=>false)
+                copy.send reflection.setter_method, record.save
               }
             else
               copy.after_save_hook{
@@ -68,8 +82,9 @@ module Sequel
       end
 
       module InstanceMethods
-        def deep_dup
-          DeepDupper.new(self).dup
+        def deep_dup *associations
+          associations = nil if associations.empty?
+          DeepDupper.new(self, associations: associations).dup
         end
       end
     end

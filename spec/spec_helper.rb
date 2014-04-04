@@ -16,6 +16,7 @@ module Helpers
 end
 
 RSpec.configure do |config|
+  config.include FactoryGirl::Syntax::Methods
   config.include Helpers
 
   config.around :each do |example|
@@ -31,3 +32,6 @@ RSpec.configure do |config|
     end
   end
 end
+
+FactoryGirl.definition_file_paths = %w(spec/support)
+FactoryGirl.reload
