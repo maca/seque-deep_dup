@@ -56,8 +56,8 @@ module Sequel
           unless reflection[:type] == :many_to_many
             record = DeepDupper.new(
               record,
-              omit_records: omit_records,
-              associations: associations
+              :omit_records => omit_records,
+              :associations => associations
             ).dup
           end
 
@@ -84,7 +84,7 @@ module Sequel
       module InstanceMethods
         def deep_dup *associations
           associations = nil if associations.empty?
-          DeepDupper.new(self, associations: associations).dup
+          DeepDupper.new(self, :associations => associations).dup
         end
       end
     end
