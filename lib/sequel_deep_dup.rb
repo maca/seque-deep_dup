@@ -28,7 +28,7 @@ module Sequel
         end
 
         def dup_associations instance, copy, includes = nil
-          includes &&= includes.map { |item| [*item].flatten }
+          includes &&= parse_graph(includes)
           associations = instance.class.associations
 
           ([*includes].map{ |i| i.first } - associations).each do |assoc|
@@ -47,6 +47,17 @@ module Sequel
               end
             end
           end
+        end
+
+        def parse_graph(enum)
+          enum.map do |assoc|
+            case assoc
+            when Hash then assoc
+            when Symbol then [[assoc]]
+            else 
+              [assoc.map {} ]
+            end
+          end.flatten(1)
         end
 
         private

@@ -119,9 +119,11 @@ describe Sequel::Plugins::DeepDup do
   describe 'restrictions' do
     before do
       Program.plugin :deep_dup
+      Course.plugin :deep_dup
     end
 
     let!(:program) { create :program, :with_graph }
+
 
     describe 'validate graph' do
       it { Course.count.should be 3 }
@@ -137,7 +139,7 @@ describe Sequel::Plugins::DeepDup do
       let(:program_copy) { program.deep_dup :courses }
       it { expect { program_copy.save }.to change{ Course.count }.by(3) }
       it { expect { program_copy.save }.not_to change{ Enrollment.count } }
-    end 
+    end
 
     describe 'restricts to children of children' do
       let(:program_copy) { program.deep_dup :courses => :assignments }
@@ -158,8 +160,57 @@ describe Sequel::Plugins::DeepDup do
       it { expect { program_copy.save }.not_to change { Category.count } }
     end
 
+    describe 'allows different graphs for same record with different graph format' do
+      let(:course) { program.courses.first }
+      
+      let(:course_copy) { course.deep_dup({:categories => [], :enrollments => {:student => [:profile, :account]}}, :assignments) }
+      it { expect { course_copy.save }.to change { Course.count }.by(1) }
+      it { expect { course_copy.save }.to change { Assignment.count }.by(3) }
+      it { expect { course_copy.save }.to change { Enrollment.count }.by(3) }
+      it { expect { course_copy.save }.to change { Student.count }.by(3) }
+      it { expect { course_copy.save }.to change { Account.count }.by(3) }
+      it { expect { course_copy.save }.to change { Profile.count }.by(3) }
+      it { expect { course_copy.save }.to change { DB[:course_categories].count }.by(3) }
+      it { expect { course_copy.save }.not_to change { Category.count } }
+    end
+
+    describe 'parsing graph' do
+      let(:dupper) { Sequel::Plugins::DeepDup::DeepDupper.new(nil) }
+
+      # it 'maps symbols' do
+      #   parsed = dupper.parse_graph( [:course, :assignments, :categories] )
+      #   parsed.should == [[:course], [:assignments], [:categories]]
+      # end
+
+      # it 'maps symbols followed by hash' do
+      #   parsed = dupper.parse_graph( [:course, {:assignments => :categories}] )
+      #   parsed.should == [[:course], [:assignments, :categories]]
+      # end
+
+      # it 'maps hash with several keys' do
+      #   parsed = dupper.parse_graph( :assignments => [], :categories => [], :enrollments => [:student] )
+      #   parsed.should == [[:assignments], [:categories], [:enrollments, :student]]
+      # end
+
+      it 'maps array of symbol and hashes' do
+        parsed = dupper.parse_graph( [:assignments, {:categories => [], :enrollments => [:student]}] )
+        parsed.should == [[:assignments], [:categories], [:enrollments, :student]]
+      end
+
+      it 'maps array of symbol and hashes with nested assoc array' do
+        parsed = dupper.parse_graph( [:assignments, {:enrollments => [:student, :course]}] )
+        parsed.should == [[:assignments], [:enrollments, [:student, :course]]]
+      end
+
+      # it 'maps nested hashes' do
+      #   parsed = dupper.parse_graph([{:courses=>[:assignments, :categories, {:enrollments=>{:student=>[:profile, :account]}}]}])
+      #   parsed.should == [[:courses, :assignments, :categories, {:enrollments=>{:student=>[:profile, :account]}}]]
+      # end
+    end
+
+
     it 'raises exception when association present in graph is not defined in model' do
-      expect { program.deep_dup :potatoes }.to raise_error(Sequel::Error) 
+      expect { program.deep_dup :potatoes }.to raise_error(Sequel::Error)
     end
   end
 end
