@@ -18,12 +18,12 @@ describe Sequel::Plugins::DeepDup do
     describe 'duplication plain record' do
       context 'with regular pk' do
         it { program_copy.name.should == 'CS' }
-        it { program_copy.pk.should be_nil } 
+        it { program_copy.pk.should be_nil }
       end
 
       context 'with composite pks' do
-        it { program_copy.should be_new } 
-        it { enrollment_copy.pk.should == [nil, nil] } 
+        it { program_copy.should be_new }
+        it { enrollment_copy.pk.should == [nil, nil] }
         it { enrollment_copy.should be_new }
       end
     end
@@ -162,7 +162,7 @@ describe Sequel::Plugins::DeepDup do
 
     describe 'allows different graphs for same record with different graph format' do
       let(:course) { program.courses.first }
-      
+
       let(:course_copy) { course.deep_dup({:categories => [], :enrollments => {:student => [:profile, :account]}}, :assignments) }
       it { expect { course_copy.save }.to change { Course.count }.by(1) }
       it { expect { course_copy.save }.to change { Assignment.count }.by(3) }
@@ -174,40 +174,50 @@ describe Sequel::Plugins::DeepDup do
       it { expect { course_copy.save }.not_to change { Category.count } }
     end
 
-    describe 'parsing graph' do
+    describe 'normalizing graph' do
       let(:dupper) { Sequel::Plugins::DeepDup::DeepDupper.new(nil) }
 
-      # it 'maps symbols' do
-      #   parsed = dupper.parse_graph( [:course, :assignments, :categories] )
-      #   parsed.should == [[:course], [:assignments], [:categories]]
-      # end
+      it 'maps symbols' do
+        parsed = dupper.normalize_graph( [:course, :assignments, :categories] )
+        parsed.should == {:course => {}, :assignments => {}, :categories => {}}
+      end
 
-      # it 'maps symbols followed by hash' do
-      #   parsed = dupper.parse_graph( [:course, {:assignments => :categories}] )
-      #   parsed.should == [[:course], [:assignments, :categories]]
-      # end
+      it 'maps symbols followed by hash' do
+        parsed = dupper.normalize_graph( [:course, {:assignments => :categories}] )
+        parsed.should == {:course => {}, :assignments => {:categories => {}}}
+      end
 
-      # it 'maps hash with several keys' do
-      #   parsed = dupper.parse_graph( :assignments => [], :categories => [], :enrollments => [:student] )
-      #   parsed.should == [[:assignments], [:categories], [:enrollments, :student]]
-      # end
+      it 'omits processing a hash' do
+        parsed = dupper.normalize_graph( :assignments => [], :categories => [], :enrollments => [:student] )
+        parsed.should == { :assignments => {}, :categories => {}, :enrollments => {:student => {}} }
+      end
 
       it 'maps array of symbol and hashes' do
-        parsed = dupper.parse_graph( [:assignments, {:categories => [], :enrollments => [:student]}] )
-        parsed.should == [[:assignments], [:categories], [:enrollments, :student]]
+        parsed = dupper.normalize_graph( [:assignments, {:categories => [], :enrollments => [:student]}] )
+        parsed.should == {:assignments => {}, :categories => {}, :enrollments => {:student => {}}}
       end
 
       it 'maps array of symbol and hashes with nested assoc array' do
-        parsed = dupper.parse_graph( [:assignments, {:enrollments => [:student, :course]}] )
-        parsed.should == [[:assignments], [:enrollments, [:student, :course]]]
+        parsed = dupper.normalize_graph( [:assignments, {:enrollments => [:student, :course]}, :tags] )
+        parsed.should ==  {:assignments => {}, :enrollments => {:student => {}, :course => {}}, :tags => {}}
       end
 
-      # it 'maps nested hashes' do
-      #   parsed = dupper.parse_graph([{:courses=>[:assignments, :categories, {:enrollments=>{:student=>[:profile, :account]}}]}])
-      #   parsed.should == [[:courses, :assignments, :categories, {:enrollments=>{:student=>[:profile, :account]}}]]
-      # end
+      it 'maps nested hashes' do
+        parsed = dupper.normalize_graph([{:courses => [:assignments, {:enrollments => {:student => [:profile, :account]}}, :categories]}])
+        parsed.should == {
+          :courses => {
+            :assignments => {},
+            :enrollments => {
+              :student => {
+                :profile => {},
+                :account => {}
+              }
+            },
+            :categories => {}
+          }
+        }
+      end
     end
-
 
     it 'raises exception when association present in graph is not defined in model' do
       expect { program.deep_dup :potatoes }.to raise_error(Sequel::Error)

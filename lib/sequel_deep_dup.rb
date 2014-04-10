@@ -28,19 +28,21 @@ module Sequel
         end
 
         def dup_associations instance, copy, includes = nil
-          includes &&= parse_graph(includes)
+          includes &&= normalize_graph(includes)
           associations = instance.class.associations
 
-          ([*includes].map{ |i| i.first } - associations).each do |assoc|
-            raise(Error, "no association named #{assoc} for #{instance}")
+          if includes
+            (includes.keys - associations).each do |assoc|
+              raise(Error, "no association named #{assoc} for #{instance}")
+            end
           end
 
           associations.each do |name|
             next unless refl = instance.class.association_reflection(name)
             [*instance.send(name)].compact.each do |rec|
               if includes
-                next unless graph = includes.assoc(refl[:name])
-                instantiate_associated(copy, refl, rec, graph[1..-1])
+                next unless includes.has_key?( refl_name = refl[:name] )
+                instantiate_associated copy, refl, rec, includes[refl_name]
               else
                 next copy.values.delete(refl[:key]) if refl[:type] == :many_to_one
                 instantiate_associated(copy, refl, rec, nil)
@@ -49,15 +51,15 @@ module Sequel
           end
         end
 
-        def parse_graph(enum)
-          enum.map do |assoc|
+        def normalize_graph(*enum)
+          enum.inject({}) do |hash, assoc|
             case assoc
-            when Hash then assoc
-            when Symbol then [[assoc]]
-            else 
-              [assoc.map {} ]
+            when Symbol then hash[assoc] = {}
+            when Hash   then assoc.each { |k, v| hash[k] = normalize_graph(v) }
+            else hash.merge!(normalize_graph(*assoc) || next)
             end
-          end.flatten(1)
+            hash
+          end
         end
 
         private
