@@ -1,5 +1,7 @@
 # Sequel::DeepDup
 
+[![Code Climate](https://codeclimate.com/github/maca/sequel_deep_dup.png)](https://codeclimate.com/github/maca/sequel_deep_dup)
+
 TODO: Write a gem description
 
 ## Installation
